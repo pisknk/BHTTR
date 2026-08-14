@@ -732,6 +732,64 @@ static BOOL isAuthenticationShowed = FALSE;
 }
 %end
 
+// 46.5.0: surface TikTok's hidden official account-region-change entry (PNSChangeRegion SDK).
+// isChangeRegionEnabled gates the settings entry; hooked on every plausible owner class —
+// a class not implementing the selector is a harmless no-op. The server still validates the
+// actual migration (IP/eligibility/cooldown); this toggle only reveals the UI.
+%hook TTKChangeRegionInitConfig
+- (BOOL)isChangeRegionEnabled {
+    if ([BHIManager showRegionChangeOption]) {
+        return YES;
+    }
+    return %orig;
+}
+%end
+
+%hook TTKChangeRegionInitConfigV2
+- (BOOL)isChangeRegionEnabled {
+    if ([BHIManager showRegionChangeOption]) {
+        return YES;
+    }
+    return %orig;
+}
+%end
+
+%hook TTKSettingsChangeRegionManager
+- (BOOL)isChangeRegionEnabled {
+    if ([BHIManager showRegionChangeOption]) {
+        return YES;
+    }
+    return %orig;
+}
+%end
+
+%hook TTKSignupChangeRegionManager
+- (BOOL)isChangeRegionEnabled {
+    if ([BHIManager showRegionChangeOption]) {
+        return YES;
+    }
+    return %orig;
+}
+%end
+
+%hook PNSChangeRegionManager
+- (BOOL)isChangeRegionEnabled {
+    if ([BHIManager showRegionChangeOption]) {
+        return YES;
+    }
+    return %orig;
+}
+%end
+
+%hook PNSChangeRegionManagerV2
+- (BOOL)isChangeRegionEnabled {
+    if ([BHIManager showRegionChangeOption]) {
+        return YES;
+    }
+    return %orig;
+}
+%end
+
 // 46.5.0: TTKPassportAppStoreRegionModel was removed by TikTok (replaced by PNSAppStoreRegion*
 // network response DTOs, which are not consulted for region). Region spoofing remains covered by
 // the CTCarrier / TTKStoreRegionService / TIKTOKRegionManager / ATSRegionCacheManager /

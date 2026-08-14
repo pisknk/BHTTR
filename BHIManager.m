@@ -125,6 +125,9 @@
 + (BOOL)ghostTyping {
     return [[NSUserDefaults standardUserDefaults] boolForKey:@"ghost_typing"];
 }
++ (BOOL)showRegionChangeOption {
+    return [[NSUserDefaults standardUserDefaults] boolForKey:@"show_region_change_option"];
+}
 + (void)cleanCache {
     NSArray <NSURL *> *DocumentFiles = [[NSFileManager defaultManager] contentsOfDirectoryAtURL:[NSURL fileURLWithPath:NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, true).firstObject] includingPropertiesForKeys:@[] options:NSDirectoryEnumerationSkipsHiddenFiles error:nil];
     

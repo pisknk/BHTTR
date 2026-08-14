@@ -43,6 +43,7 @@
 + (BOOL)disableScreenshotDetection;
 + (BOOL)ghostReadReceipts;
 + (BOOL)ghostTyping;
++ (BOOL)showRegionChangeOption;
 + (void)showSaveVC:(id)item;
 + (void)cleanCache;
 + (BOOL)isEmpty:(NSURL *)url;

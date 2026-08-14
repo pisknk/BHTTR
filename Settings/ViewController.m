@@ -87,7 +87,7 @@
         case 3: // Other section
             return 11;
         case 4:
-            return 2; // region section
+            return 3; // region section
         case 5:
             return 2; // live action section
         case 6:
@@ -337,6 +337,10 @@
                 regions.detailTextLabel.text = [NSString stringWithFormat:@"%@", selectedRegion[@"area"]];
                 return regions;
             }
+            case 2:
+                return [self createSwitchCellWithTitle:@"Show Region Change Option"
+                                                Detail:@"Surface TikTok's official account region change entry in settings"
+                                                   Key:@"show_region_change_option"];
             default:
                 break;
         }

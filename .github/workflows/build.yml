@@ -1,4 +1,4 @@
-name: Build BHTikTok++ (Rootless)
+name: Build BHTikTok++ (All Variants)
 
 on:
   push:
@@ -62,8 +62,9 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE
 
-          # version format: 1.6 -> 1.6.$RUN_NUMBER
-          VERSION="1.6.${{ github.run_number }}"
+          # base version is read from control (e.g. 1.7) -> 1.7.$RUN_NUMBER
+          BASE_VERSION=$(grep -i "^Version:" control | head -n 1 | cut -d' ' -f2 | tr -d '[:space:]')
+          VERSION="$BASE_VERSION.${{ github.run_number }}"
 
           # update control file (macos uses different sed syntax)
           sed -i '' "s/^Version: .*/Version: $VERSION/" control
@@ -72,36 +73,78 @@ jobs:
           echo "Updated version to: $VERSION"
           grep "^Version:" control
 
-      - name: build tweak
+      - name: build rootless variant (arm64 + arm64e)
         run: |
           export THEOS=$HOME/theos
           export PATH=$THEOS/bin:$PATH
-
-          # build for rootless jailbreaks (dopamine, palera1n) - dylib also works with TrollFools
-          cd $GITHUB_WORKSPACE
-          make package THEOS_PACKAGE_SCHEME=rootless DEBUG=0 FINALPACKAGE=1 ARCHS="arm64 arm64e" TARGET=iphone:clang:16.5:15.0
-
-          # list built artifacts
-          ls -la packages/
-
-      - name: collect artifacts
-        run: |
           cd $GITHUB_WORKSPACE
           mkdir -p artifacts
 
-          # .deb package for jailbreak users
-          cp packages/*.deb artifacts/
+          # rootless jailbreaks (dopamine, palera1n rootless) - dylib also works with TrollFools
+          # theos names/labels the deb from the control file's Architecture field,
+          # so each variant sets it explicitly before building
+          sed -i '' "s/^Architecture: .*/Architecture: iphoneos-arm64/" control
+          make package THEOS_PACKAGE_SCHEME=rootless DEBUG=0 FINALPACKAGE=1 ARCHS="arm64 arm64e" TARGET=iphone:clang:16.5:15.0
 
-          # raw dylib for TrollStore/TrollFools injection (taken from theos staging dir)
+          # .deb for rootless jailbreak users
+          cp packages/*_iphoneos-arm64.deb artifacts/
+
+          # raw universal (arm64+arm64e) dylib for TrollStore/TrollFools injection
           DYLIB_PATH=$(find .theos/_ -name "BHTikTok.dylib" | head -n 1)
           if [ ! -f "$DYLIB_PATH" ]; then
             echo "ERROR: BHTikTok.dylib not found in .theos/_ staging dir"
             exit 1
           fi
           echo "Found dylib at: $DYLIB_PATH"
-          cp "$DYLIB_PATH" artifacts/
+          cp "$DYLIB_PATH" artifacts/BHTikTok.dylib
 
+      - name: build rootful variant (arm64)
+        run: |
+          export THEOS=$HOME/theos
+          export PATH=$THEOS/bin:$PATH
+          cd $GITHUB_WORKSPACE
+
+          # full clean rebuild - the THEOS_PACKAGE_INSTALL_PREFIX compile define
+          # changes between schemes and theos does not track flag changes
+          make clean
+
+          # rootful jailbreaks (palera1n rootful, checkra1n)
+          # no package scheme = rootful (install prefix /, files at /Library/MobileSubstrate/...)
+          # arm64 only: all rootful-capable iOS 15+ devices (A9-A11) are arm64
+          sed -i '' "s/^Architecture: .*/Architecture: iphoneos-arm/" control
+          make package DEBUG=0 FINALPACKAGE=1 ARCHS="arm64" TARGET=iphone:clang:16.5:15.0
+
+          cp packages/*_iphoneos-arm.deb artifacts/
+
+      - name: build roothide variant (arm64e)
+        run: |
+          export THEOS=$HOME/theos
+          export PATH=$THEOS/bin:$PATH
+          cd $GITHUB_WORKSPACE
+
+          make clean
+
+          # real roothide scheme via the module vendored in mod/roothide
+          # (mainline theos only ships a rootless scheme module, so this repo
+          # provides its own; roothide bootstrap is arm64e-only -> ARCHS="arm64e")
+          sed -i '' "s/^Architecture: .*/Architecture: iphoneos-arm64e/" control
+          make package THEOS_PACKAGE_SCHEME=roothide THEOS_MODULE_PATH="$GITHUB_WORKSPACE/mod" DEBUG=0 FINALPACKAGE=1 ARCHS="arm64e" TARGET=iphone:clang:16.5:15.0
+
+          cp packages/*_iphoneos-arm64e.deb artifacts/
+
+      - name: verify artifacts
+        run: |
+          cd $GITHUB_WORKSPACE
           ls -la artifacts/
+
+          # expect exactly 4 files: 1 dylib + 3 debs (rootless / rootful / roothide)
+          FILE_COUNT=$(ls -1 artifacts/ | wc -l | tr -d ' ')
+          DEB_COUNT=$(ls -1 artifacts/*.deb 2>/dev/null | wc -l | tr -d ' ')
+          if [ "$FILE_COUNT" -ne 4 ] || [ "$DEB_COUNT" -ne 3 ] || [ ! -f artifacts/BHTikTok.dylib ]; then
+            echo "ERROR: expected 4 artifacts (3 debs + BHTikTok.dylib), got $FILE_COUNT files ($DEB_COUNT debs)"
+            exit 1
+          fi
+          echo "All 4 artifacts present."
 
       - name: upload artifacts
         uses: actions/upload-artifact@v4

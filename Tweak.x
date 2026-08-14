@@ -743,10 +743,22 @@ static BOOL isAuthenticationShowed = FALSE;
     }
     return %orig;
 }
+- (BOOL)hasEntranceShowInfo {
+    if ([BHIManager showRegionChangeOption]) {
+        return YES;
+    }
+    return %orig;
+}
 %end
 
 %hook TTKChangeRegionInitConfigV2
 - (BOOL)isChangeRegionEnabled {
+    if ([BHIManager showRegionChangeOption]) {
+        return YES;
+    }
+    return %orig;
+}
+- (BOOL)hasEntranceShowInfo {
     if ([BHIManager showRegionChangeOption]) {
         return YES;
     }
@@ -761,10 +773,22 @@ static BOOL isAuthenticationShowed = FALSE;
     }
     return %orig;
 }
+- (BOOL)hasEntranceShowInfo {
+    if ([BHIManager showRegionChangeOption]) {
+        return YES;
+    }
+    return %orig;
+}
 %end
 
 %hook TTKSignupChangeRegionManager
 - (BOOL)isChangeRegionEnabled {
+    if ([BHIManager showRegionChangeOption]) {
+        return YES;
+    }
+    return %orig;
+}
+- (BOOL)hasEntranceShowInfo {
     if ([BHIManager showRegionChangeOption]) {
         return YES;
     }
@@ -779,10 +803,54 @@ static BOOL isAuthenticationShowed = FALSE;
     }
     return %orig;
 }
+- (BOOL)hasEntranceShowInfo {
+    if ([BHIManager showRegionChangeOption]) {
+        return YES;
+    }
+    return %orig;
+}
 %end
 
 %hook PNSChangeRegionManagerV2
 - (BOOL)isChangeRegionEnabled {
+    if ([BHIManager showRegionChangeOption]) {
+        return YES;
+    }
+    return %orig;
+}
+- (BOOL)hasEntranceShowInfo {
+    if ([BHIManager showRegionChangeOption]) {
+        return YES;
+    }
+    return %orig;
+}
+%end
+
+// Same toggle, SECOND gate: the settings entry is only built when the SDK fetched entrance
+// info from the server (hasEntranceShowInfo/entranceShowType over com.pns.changeregion.v2).
+// PH accounts get hasEntranceShowInfo=NO → entry hidden even with isChangeRegionEnabled=YES
+// (confirmed by device test). These data-manager classes are the most likely holders of the
+// fetched flag; classes that don't implement the selector are harmless no-ops.
+%hook PNSChangeRegionDataManager
+- (BOOL)hasEntranceShowInfo {
+    if ([BHIManager showRegionChangeOption]) {
+        return YES;
+    }
+    return %orig;
+}
+%end
+
+%hook PNSSettingsChangeRegionDataManager
+- (BOOL)hasEntranceShowInfo {
+    if ([BHIManager showRegionChangeOption]) {
+        return YES;
+    }
+    return %orig;
+}
+%end
+
+%hook PNSSettingsChangeRegionDataManagerV2
+- (BOOL)hasEntranceShowInfo {
     if ([BHIManager showRegionChangeOption]) {
         return YES;
     }

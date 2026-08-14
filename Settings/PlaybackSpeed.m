@@ -53,7 +53,7 @@
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
     [defaults setValue:selectedSpeed forKey:@"playback_speed"];
     [defaults synchronize];
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Live Option Selected" message:[NSString stringWithFormat:@"You selected: %@", selectedSpeed]
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Playback Speed Selected" message:[NSString stringWithFormat:@"You selected: %@", selectedSpeed]
                                                             preferredStyle:UIAlertControllerStyleAlert];
     UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil];
     [alert addAction:okAction];

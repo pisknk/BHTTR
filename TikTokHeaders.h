@@ -21,6 +21,8 @@
 @end
 
 @interface TTKProfileRootView: UIView
+- (void)addHandleLongPress;
+- (void)handleLongPress:(UILongPressGestureRecognizer *)sender;
 @end
 
 
@@ -114,6 +116,8 @@
 @property(nonatomic, copy, readwrite) NSString *signature;
 @property(nonatomic, copy, readwrite) NSString *socialName;
 @property (nonatomic, strong, readwrite) NSNumber *visibleVideosCount;
+- (NSNumber *)followerCount;
+- (NSNumber *)followingCount;
 @end
 
 @interface AWEAwemeModel : NSObject
@@ -126,6 +130,7 @@
 @property(nonatomic) NSString *music_artistName;
 @property(nonatomic, strong, readwrite) AWEAwemeModel *currentPlayingStory;
 @property (nonatomic, copy, readwrite) NSString *region;
+@property (nonatomic, copy, readwrite) NSString *desc; // video caption (46.5.0)
 @property (nonatomic, strong, readwrite) AWEAwemeStatisticsModel *statistics;
 @property (nonatomic, strong, readwrite) NSNumber *createTime;
 @property (nonatomic, strong, readwrite) AWEUserModel *author;
@@ -187,13 +192,10 @@
 @interface TTKSettingsViewModel: AWESettingsBaseViewModel
 @end
 
-@interface TIKTOKProfileHeaderViewController: UIViewController
-@property(nonatomic, strong) AWEUserModel *user;
-@end
-
-@interface TIKTOKProfileHeaderView: UIView
-- (void)addHandleLongPress;
-- (void)handleLongPress:(UILongPressGestureRecognizer *)sender;
+// 46.5.0: TIKTOKProfileHeaderView/Controller were removed by TikTok; the profile header
+// is now built by the TTKProfileHeaderAdaptor / TTKProfileHeaderViewComponent family.
+// Copy-profile-info long-press lives on TTKProfileRootView instead (see Tweak.x).
+@interface TTKProfileHeaderAdaptorView: UIView
 @end
 
 @interface AWEProfileImagePreviewView: UIView

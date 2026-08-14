@@ -46,7 +46,7 @@
 
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
-    return 8;
+    return 9;
 }
 
 - (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section {
@@ -68,6 +68,8 @@
             return @"Playback Speed";
         case 7:
             return @"Developer";
+        case 8:
+            return @"Privacy";
         default:
             break;
     }
@@ -83,7 +85,7 @@
         case 2: // Confirm section
             return 4;
         case 3: // Other section
-            return 10;
+            return 11;
         case 4:
             return 2; // region section
         case 5:
@@ -91,7 +93,9 @@
         case 6:
             return 2;
         case 7:
-            return 3; // developer section
+            return 2; // developer section
+        case 8:
+            return 2; // privacy section
         default:
             return 0; // Fallback for unexpected section
     }
@@ -244,7 +248,7 @@
                     [textField.heightAnchor constraintEqualToConstant:30]
                 ]];
                 NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-                NSString *savedText = [defaults stringForKey:@"following_count"];
+                NSString *savedText = [defaults stringForKey:@"follower_count"];
                 if (savedText) {
                     textField.text = savedText;
                 }
@@ -312,6 +316,10 @@
                 return [self createSwitchCellWithTitle:@"Enable Flex"
                                                 Detail:@"Developers Only, DON'T touch it if you don't know what you are doing."
                                                    Key:@"flex_enebaled"];
+            case 10:
+                return [self createSwitchCellWithTitle:@"Bypass Screenshot Detection"
+                                                Detail:@"Take screenshots freely; suppress screenshot notifications and the share popup"
+                                                   Key:@"disable_screenshot_detection"];
             default:
                 break;
         }
@@ -378,33 +386,36 @@
         switch (indexPath.row) {
             case 0: {
                 UITableViewCell *cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:nil];
-                cell.textLabel.text = @"Raul Saeed";
+                cell.textLabel.text = @"Neil Bayron (pisknk)";
                 cell.textLabel.textColor = [UIColor systemBlueColor];
-                cell.detailTextLabel.text = @"Github Page";
+                cell.detailTextLabel.text = @"GitHub Page";
                 cell.imageView.image = [UIImage systemImageNamed:@"link"];
                 cell.detailTextLabel.textColor = [UIColor systemGrayColor];
                 return cell;
             }
             case 1: {
                 UITableViewCell *cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:nil];
-                cell.textLabel.text = @"Raul Saeed";
+                cell.textLabel.text = @"BHTTR";
                 cell.textLabel.textColor = [UIColor systemBlueColor];
-                cell.detailTextLabel.text = @"X Page";
+                cell.detailTextLabel.text = @"Source Code & Updates";
                 cell.imageView.image = [UIImage systemImageNamed:@"link"];
                 cell.detailTextLabel.textColor = [UIColor systemGrayColor];
                 return cell;
             }
-            case 2: {
-                UITableViewCell *cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:nil];
-                cell.textLabel.text = @"Buy Me A Coffe";
-                cell.textLabel.textColor = [UIColor systemBlueColor];
-                cell.detailTextLabel.text = @"To keep me Motivated and the Tweak Updated.";
-                cell.imageView.tintColor = [UIColor orangeColor];
-                cell.detailTextLabel.textColor = [UIColor systemGrayColor];
-                cell.imageView.image = [UIImage systemImageNamed:@"mug.fill"];
-                return cell;
-            }
+            default:
                 break;
+        }
+    }
+    else if (indexPath.section == 8) {
+        switch (indexPath.row) {
+            case 0:
+                return [self createSwitchCellWithTitle:@"Ghost Mode: Read Receipts"
+                                                Detail:@"Read DMs without sending seen receipts"
+                                                   Key:@"ghost_read_receipts"];
+            case 1:
+                return [self createSwitchCellWithTitle:@"Ghost Mode: Typing"
+                                                Detail:@"Type without sending typing indicators"
+                                                   Key:@"ghost_typing"];
             default:
                 break;
         }
@@ -430,21 +441,13 @@
         [self presentViewController:navController animated:YES completion:nil];
     }
     else if (indexPath.section == 7 && indexPath.row == 0){
-        NSURL *url = [NSURL URLWithString:@"https://github.com/raulsaeed"];
+        NSURL *url = [NSURL URLWithString:@"https://github.com/pisknk"];
         if ([[UIApplication sharedApplication] canOpenURL:url]) {
-            
             [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
         }
     }
     else if (indexPath.section == 7 && indexPath.row == 1){
-        NSURL *url = [NSURL URLWithString:@"https://x.com/Ashad__Saeed"];;
-        if ([[UIApplication sharedApplication] canOpenURL:url]) {
-            
-            [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
-        }
-    }
-    else if (indexPath.section == 7 && indexPath.row == 2){
-        NSURL *url = [NSURL URLWithString:@"https://buymeacoffee.com/raulsaeed79"];
+        NSURL *url = [NSURL URLWithString:@"https://github.com/pisknk/BHTTR"];
         if ([[UIApplication sharedApplication] canOpenURL:url]) {
             [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
         }

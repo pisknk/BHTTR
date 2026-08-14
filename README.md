@@ -42,6 +42,9 @@ https://t.me/BHTikTokPlusPlus
 - Fake Follower count
 - Fake Following count
 - Padlock
+- Bypass Screenshot Detection
+- Ghost Mode: Read Receipts
+- Ghost Mode: Typing Indicators
 
 # TODO
 -  [ ] Add Localization for the tweak.

@@ -1,9 +1,9 @@
-Package: com.raulsaeed.bhtiktok++
-Name: BHTikTok++
-Version: 1.5
+Package: ph.playpass.bhttr
+Name: BHTTR
+Version: 1.6
 Architecture: iphoneos-arm
-Description: An awesome tweak for TikTok!
-Maintainer: raul saeed
-Author: raul saeed
+Description: An awesome TikTok tweak.
+Maintainer: Neil Bayron (pisknk)
+Author: Neil Bayron (pisknk)
 Section: Tweaks
 Depends: mobilesubstrate

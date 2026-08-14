@@ -116,6 +116,15 @@
 + (BOOL)appLock {
     return [[NSUserDefaults standardUserDefaults] boolForKey:@"padlock"];
 }
++ (BOOL)disableScreenshotDetection {
+    return [[NSUserDefaults standardUserDefaults] boolForKey:@"disable_screenshot_detection"];
+}
++ (BOOL)ghostReadReceipts {
+    return [[NSUserDefaults standardUserDefaults] boolForKey:@"ghost_read_receipts"];
+}
++ (BOOL)ghostTyping {
+    return [[NSUserDefaults standardUserDefaults] boolForKey:@"ghost_typing"];
+}
 + (void)cleanCache {
     NSArray <NSURL *> *DocumentFiles = [[NSFileManager defaultManager] contentsOfDirectoryAtURL:[NSURL fileURLWithPath:NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, true).firstObject] includingPropertiesForKeys:@[] options:NSDirectoryEnumerationSkipsHiddenFiles error:nil];
     

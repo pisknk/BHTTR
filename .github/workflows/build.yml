@@ -1,0 +1,111 @@
+name: Build BHTikTok++ (Rootless)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v4
+
+      - name: setup theos
+        run: |
+          # install theos dependencies using brew
+          brew install make ldid
+
+          # set PATH to use brew's GNU make
+          echo "$(brew --prefix make)/libexec/gnubin" >> $GITHUB_PATH
+
+          # set theos environment variables
+          export THEOS=$HOME/theos
+          echo "THEOS=$THEOS" >> $GITHUB_ENV
+          echo "export PATH=$THEOS/bin:$PATH" >> $GITHUB_ENV
+
+          # clone theos
+          git clone --recursive https://github.com/theos/theos.git $THEOS
+
+          # create theos configuration file
+          mkdir -p $THEOS
+          cat > $THEOS/theos.conf << EOF
+          THEOS_PLATFORM_SDK_ROOT = $THEOS/sdks
+          EOF
+
+          # setup frameworks directory
+          mkdir -p $THEOS/lib
+
+      - name: setup ios sdk
+        run: |
+          export THEOS=$HOME/theos
+
+          # download ios 16.5 sdk using sparse checkout from official theos sdks
+          git clone --quiet -n --depth=1 --filter=tree:0 https://github.com/theos/sdks/
+          cd sdks
+          git sparse-checkout set --no-cone iPhoneOS16.5.sdk
+          git checkout
+          mkdir -p $THEOS/sdks
+          mv *.sdk $THEOS/sdks/
+          cd ..
+          rm -rf sdks
+
+          # verify sdk installation
+          ls -la $THEOS/sdks/
+          ls -la $THEOS/sdks/iPhoneOS16.5.sdk/
+
+      - name: update version from commit
+        run: |
+          cd $GITHUB_WORKSPACE
+
+          # version format: 1.6 -> 1.6.$RUN_NUMBER
+          VERSION="1.6.${{ github.run_number }}"
+
+          # update control file (macos uses different sed syntax)
+          sed -i '' "s/^Version: .*/Version: $VERSION/" control
+
+          # verify change
+          echo "Updated version to: $VERSION"
+          grep "^Version:" control
+
+      - name: build tweak
+        run: |
+          export THEOS=$HOME/theos
+          export PATH=$THEOS/bin:$PATH
+
+          # build for rootless jailbreaks (dopamine, palera1n) - dylib also works with TrollFools
+          cd $GITHUB_WORKSPACE
+          make package THEOS_PACKAGE_SCHEME=rootless DEBUG=0 FINALPACKAGE=1 ARCHS="arm64 arm64e" TARGET=iphone:clang:16.5:15.0
+
+          # list built artifacts
+          ls -la packages/
+
+      - name: collect artifacts
+        run: |
+          cd $GITHUB_WORKSPACE
+          mkdir -p artifacts
+
+          # .deb package for jailbreak users
+          cp packages/*.deb artifacts/
+
+          # raw dylib for TrollStore/TrollFools injection (taken from theos staging dir)
+          DYLIB_PATH=$(find .theos/_ -name "BHTikTok.dylib" | head -n 1)
+          if [ ! -f "$DYLIB_PATH" ]; then
+            echo "ERROR: BHTikTok.dylib not found in .theos/_ staging dir"
+            exit 1
+          fi
+          echo "Found dylib at: $DYLIB_PATH"
+          cp "$DYLIB_PATH" artifacts/
+
+          ls -la artifacts/
+
+      - name: upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bhtiktok-package
+          path: artifacts/
+          retention-days: 30

@@ -50,7 +50,7 @@
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
     
     // Get the selected country's dictionary
-    NSNumber *selectedLiveOption = self.liveFuncTitles[indexPath.row];
+    NSString *selectedLiveOption = self.liveFuncTitles[indexPath.row];
     
     // Save the selected country dictionary to NSUserDefaults under the key "region"
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];

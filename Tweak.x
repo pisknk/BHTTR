@@ -189,6 +189,34 @@ static BOOL isAuthenticationShowed = FALSE;
         }
     }
 }
+
+// copy profile information (46.5.0: TIKTOKProfileHeaderView was removed by TikTok,
+// so the long-press gesture now lives on the profile root view)
+- (id)initWithFrame:(CGRect)frame {
+    self = %orig;
+    if ([BHIManager profileCopy]) {
+        [self addHandleLongPress];
+    }
+    return self;
+}
+%new - (void)addHandleLongPress {
+    UILongPressGestureRecognizer *longPress = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(handleLongPress:)];
+    longPress.minimumPressDuration = 0.5;
+    [self addGestureRecognizer:longPress];
+}
+%new - (void)handleLongPress:(UILongPressGestureRecognizer *)sender {
+    if (sender.state == UIGestureRecognizerStateBegan) {
+        id rootVC = [self yy_viewController];
+        if (![rootVC respondsToSelector:@selector(user)]) { return; }
+        AWEUserModel *user = [rootVC user];
+        if (!user) { return; }
+        NSString *profileInfo = [NSString stringWithFormat:@"Nickname: %@\nUsername: @%@\nFollowers: %@\nFollowing: %@\nBio: %@", user.nickname ?: @"", user.socialName ?: @"", [user followerCount] ?: @0, [user followingCount] ?: @0, user.signature ?: @""];
+        [%c(AWEUIAlertView) showAlertWithTitle:@"Copy profile information" description:@"Do you want to copy profile information to clipboard?" image:nil actionButtonTitle:@"Yes" cancelButtonTitle:@"No" actionBlock:^{
+            UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
+            pasteboard.string = profileInfo;
+        } cancelBlock:nil];
+    }
+}
 %end
 
 %hook BDImageView
@@ -265,9 +293,25 @@ static BOOL isAuthenticationShowed = FALSE;
 %end
 
 %hook AWESettingsNormalSectionViewModel
-- (void)viewDidLoad {
-    %orig;
-    if ([self.sectionIdentifier isEqualToString:@"account"]) {
+%property (nonatomic, strong) TTKSettingsBaseCellPlugin *bhtiktokCell;
+
+// bug fix: the settings row used to be inserted once in viewDidLoad, but TikTok rebuilds the
+// section's models array asynchronously afterwards, wiping it. Injecting in the modelsArray
+// getter instead makes the row self-healing across every rebuild (with dedupe + cached cell).
+- (NSArray *)modelsArray {
+    NSArray *orig = %orig;
+    if (![self.sectionIdentifier isEqualToString:@"account"]) {
+        return orig;
+    }
+    for (id model in orig) {
+        if ([model isKindOfClass:%c(TTKSettingsBaseCellPlugin)]) {
+            TTKSettingsBaseCellPlugin *plugin = (TTKSettingsBaseCellPlugin *)model;
+            if ([plugin.itemModel.identifier isEqualToString:@"bhtiktok_settings"]) {
+                return orig;
+            }
+        }
+    }
+    if (!self.bhtiktokCell) {
         TTKSettingsBaseCellPlugin *BHTikTokSettingsPluginCell = [[%c(TTKSettingsBaseCellPlugin) alloc] initWithPluginContext:self.context];
 
         AWESettingItemModel *BHTikTokSettingsItemModel = [[%c(AWESettingItemModel) alloc] initWithIdentifier:@"bhtiktok_settings"];
@@ -277,9 +321,11 @@ static BOOL isAuthenticationShowed = FALSE;
         [BHTikTokSettingsItemModel setType:99];
 
         [BHTikTokSettingsPluginCell setItemModel:BHTikTokSettingsItemModel];
-
-        [self insertModel:BHTikTokSettingsPluginCell atIndex:0 animated:true];
+        self.bhtiktokCell = BHTikTokSettingsPluginCell;
     }
+    NSMutableArray *modified = [orig mutableCopy];
+    [modified insertObject:self.bhtiktokCell atIndex:0];
+    return [modified copy];
 }
 %end
 
@@ -457,7 +503,10 @@ static BOOL isAuthenticationShowed = FALSE;
 
 %end
 
-%hook TTKPassportAppStoreRegionModel
+// 46.5.0: belt-and-braces coverage for the newer store-region managers found in the 46.5.0
+// binary. Same spoofing pattern as the other region hooks; any selector a class does not
+// actually implement simply fails to hook (harmless no-op).
+%hook TTKStoreRegionManager
 - (id)storeRegion {
     if ([BHIManager regionChangingEnabled]) {
         if ([BHIManager selectedRegion]) {
@@ -478,27 +527,215 @@ static BOOL isAuthenticationShowed = FALSE;
     }
     return %orig(arg1);
 }
-- (void)setLocalizedCountryName:(id)arg1 {
+- (id)getStoreRegion {
     if ([BHIManager regionChangingEnabled]) {
         if ([BHIManager selectedRegion]) {
             NSDictionary *selectedRegion = [BHIManager selectedRegion];
-            return %orig(selectedRegion[@"name"]);
-        }
-        return %orig(arg1);
-    }
-    return %orig(arg1);
-}
-- (id)localizedCountryName {
-    if ([BHIManager regionChangingEnabled]) {
-        if ([BHIManager selectedRegion]) {
-            NSDictionary *selectedRegion = [BHIManager selectedRegion];
-            return selectedRegion[@"name"];
+            return [selectedRegion[@"code"] lowercaseString];
         }
         return %orig;
     }
     return %orig;
 }
+- (id)getStoreRegionUpperCase {
+    if ([BHIManager regionChangingEnabled]) {
+        if ([BHIManager selectedRegion]) {
+            NSDictionary *selectedRegion = [BHIManager selectedRegion];
+            return selectedRegion[@"code"];
+        }
+        return %orig;
+    }
+    return %orig;
+}
+- (id)appStoreRegion {
+    if ([BHIManager regionChangingEnabled]) {
+        if ([BHIManager selectedRegion]) {
+            NSDictionary *selectedRegion = [BHIManager selectedRegion];
+            return selectedRegion[@"code"];
+        }
+        return %orig;
+    }
+    return %orig;
+}
+- (void)setAppStoreRegion:(id)arg1 {
+    if ([BHIManager regionChangingEnabled]) {
+        if ([BHIManager selectedRegion]) {
+            NSDictionary *selectedRegion = [BHIManager selectedRegion];
+            return %orig(selectedRegion[@"code"]);
+        }
+        return %orig(arg1);
+    }
+    return %orig(arg1);
+}
+- (id)appSettingStoreRegion {
+    if ([BHIManager regionChangingEnabled]) {
+        if ([BHIManager selectedRegion]) {
+            NSDictionary *selectedRegion = [BHIManager selectedRegion];
+            return selectedRegion[@"code"];
+        }
+        return %orig;
+    }
+    return %orig;
+}
+- (id)userStoreRegion {
+    if ([BHIManager regionChangingEnabled]) {
+        if ([BHIManager selectedRegion]) {
+            NSDictionary *selectedRegion = [BHIManager selectedRegion];
+            return selectedRegion[@"code"];
+        }
+        return %orig;
+    }
+    return %orig;
+}
+- (id)ttStoreRegion {
+    if ([BHIManager regionChangingEnabled]) {
+        if ([BHIManager selectedRegion]) {
+            NSDictionary *selectedRegion = [BHIManager selectedRegion];
+            return selectedRegion[@"code"];
+        }
+        return %orig;
+    }
+    return %orig;
+}
+- (id)individualAccountStoreRegion {
+    if ([BHIManager regionChangingEnabled]) {
+        if ([BHIManager selectedRegion]) {
+            NSDictionary *selectedRegion = [BHIManager selectedRegion];
+            return selectedRegion[@"code"];
+        }
+        return %orig;
+    }
+    return %orig;
+}
+- (void)setIndividualAccountStoreRegion:(id)arg1 {
+    if ([BHIManager regionChangingEnabled]) {
+        if ([BHIManager selectedRegion]) {
+            NSDictionary *selectedRegion = [BHIManager selectedRegion];
+            return %orig(selectedRegion[@"code"]);
+        }
+        return %orig(arg1);
+    }
+    return %orig(arg1);
+}
 %end
+
+%hook TTRegionManager
+- (id)region {
+    if ([BHIManager regionChangingEnabled]) {
+        if ([BHIManager selectedRegion]) {
+            NSDictionary *selectedRegion = [BHIManager selectedRegion];
+            return selectedRegion[@"code"];
+        }
+        return %orig;
+    }
+    return %orig;
+}
+- (void)setRegion:(id)arg1 {
+    if ([BHIManager regionChangingEnabled]) {
+        if ([BHIManager selectedRegion]) {
+            NSDictionary *selectedRegion = [BHIManager selectedRegion];
+            return %orig(selectedRegion[@"code"]);
+        }
+        return %orig(arg1);
+    }
+    return %orig(arg1);
+}
+- (id)systemRegion {
+    if ([BHIManager regionChangingEnabled]) {
+        if ([BHIManager selectedRegion]) {
+            NSDictionary *selectedRegion = [BHIManager selectedRegion];
+            return selectedRegion[@"code"];
+        }
+        return %orig;
+    }
+    return %orig;
+}
+- (id)localRegion {
+    if ([BHIManager regionChangingEnabled]) {
+        if ([BHIManager selectedRegion]) {
+            NSDictionary *selectedRegion = [BHIManager selectedRegion];
+            return selectedRegion[@"code"];
+        }
+        return %orig;
+    }
+    return %orig;
+}
+- (id)currentAppRegion {
+    if ([BHIManager regionChangingEnabled]) {
+        if ([BHIManager selectedRegion]) {
+            NSDictionary *selectedRegion = [BHIManager selectedRegion];
+            return selectedRegion[@"code"];
+        }
+        return %orig;
+    }
+    return %orig;
+}
+- (void)setCurrentAppRegion:(id)arg1 {
+    if ([BHIManager regionChangingEnabled]) {
+        if ([BHIManager selectedRegion]) {
+            NSDictionary *selectedRegion = [BHIManager selectedRegion];
+            return %orig(selectedRegion[@"code"]);
+        }
+        return %orig(arg1);
+    }
+    return %orig(arg1);
+}
+- (id)storeRegion {
+    if ([BHIManager regionChangingEnabled]) {
+        if ([BHIManager selectedRegion]) {
+            NSDictionary *selectedRegion = [BHIManager selectedRegion];
+            return [selectedRegion[@"code"] lowercaseString];
+        }
+        return %orig;
+    }
+    return %orig;
+}
+- (void)setStoreRegion:(id)arg1 {
+    if ([BHIManager regionChangingEnabled]) {
+        if ([BHIManager selectedRegion]) {
+            NSDictionary *selectedRegion = [BHIManager selectedRegion];
+            return %orig([selectedRegion[@"code"] lowercaseString]);
+        }
+        return %orig(arg1);
+    }
+    return %orig(arg1);
+}
+- (id)getStoreRegion {
+    if ([BHIManager regionChangingEnabled]) {
+        if ([BHIManager selectedRegion]) {
+            NSDictionary *selectedRegion = [BHIManager selectedRegion];
+            return [selectedRegion[@"code"] lowercaseString];
+        }
+        return %orig;
+    }
+    return %orig;
+}
+- (id)appStoreRegion {
+    if ([BHIManager regionChangingEnabled]) {
+        if ([BHIManager selectedRegion]) {
+            NSDictionary *selectedRegion = [BHIManager selectedRegion];
+            return selectedRegion[@"code"];
+        }
+        return %orig;
+    }
+    return %orig;
+}
+- (void)setAppStoreRegion:(id)arg1 {
+    if ([BHIManager regionChangingEnabled]) {
+        if ([BHIManager selectedRegion]) {
+            NSDictionary *selectedRegion = [BHIManager selectedRegion];
+            return %orig(selectedRegion[@"code"]);
+        }
+        return %orig(arg1);
+    }
+    return %orig(arg1);
+}
+%end
+
+// 46.5.0: TTKPassportAppStoreRegionModel was removed by TikTok (replaced by PNSAppStoreRegion*
+// network response DTOs, which are not consulted for region). Region spoofing remains covered by
+// the CTCarrier / TTKStoreRegionService / TIKTOKRegionManager / ATSRegionCacheManager /
+// TTKStoreRegionModel / TTInstallIDManager / BDInstallGlobalConfig hooks in this file.
 
 %hook ATSRegionCacheManager
 - (id)getRegion {
@@ -797,6 +1034,53 @@ static BOOL isAuthenticationShowed = FALSE;
 }
 %end
 
+%hook NSNotificationCenter // bypass screenshot detection (feature #4)
+// TikTok registers its screenshot handlers (live/chat detection, "share this screenshot"
+// popup) via UIApplicationUserDidTakeScreenshotNotification. Blocking the registration
+// means those handlers never fire: no detection toasts, no share popup, app-wide.
+- (void)addObserver:(id)observer selector:(SEL)selector name:(NSString *)name object:(id)object {
+    if ([BHIManager disableScreenshotDetection] && [name isEqualToString:@"UIApplicationUserDidTakeScreenshotNotification"]) {
+        return;
+    }
+    %orig;
+}
+- (id)addObserverForName:(id)name object:(id)object queue:(id)queue usingBlock:(id)block {
+    if ([BHIManager disableScreenshotDetection] && [name isEqualToString:@"UIApplicationUserDidTakeScreenshotNotification"]) {
+        return nil;
+    }
+    return %orig;
+}
+%end
+
+%hook AWEIMMessageReadComponent // ghost mode: read receipts (feature #2)
+// stops the "mark as read" sync to TikTok's servers; messages still appear read locally
+- (void)p_markReadSyncToServerWithMessage:(id)arg1 {
+    if ([BHIManager ghostReadReceipts]) {
+        return;
+    }
+    %orig;
+}
+%end
+
+%hook AWEIMMessageDataController // ghost mode: read receipts (belt-and-braces, same selector)
+- (void)p_markReadSyncToServerWithMessage:(id)arg1 {
+    if ([BHIManager ghostReadReceipts]) {
+        return;
+    }
+    %orig;
+}
+%end
+
+%hook TIMInputStatusManager // ghost mode: typing indicators (feature #2)
+// blocks the input-status ("typing...") signal at the IM SDK layer
+- (void)sendInputStatusWithConversationID:(id)arg1 inputStatus:(long long)arg2 {
+    if ([BHIManager ghostTyping]) {
+        return;
+    }
+    %orig;
+}
+%end
+
 %hook AWEAwemeACLItem // remove default watermark
 - (void)setWatermarkType:(NSUInteger)arg1 {
     if ([BHIManager removeWatermark]){
@@ -1031,15 +1315,9 @@ static BOOL isAuthenticationShowed = FALSE;
     }
 }
 %end
-%hook TIKTOKProfileHeaderView // copy profile information
-- (id)initWithFrame:(CGRect)arg1 {
-    self = %orig;
-    if ([BHIManager profileCopy]) {
-        [self addHandleLongPress];
-    }
-    return self;
-}
-%end
+// 46.5.0: TIKTOKProfileHeaderView was removed by TikTok (profile header is now built by the
+// TTKProfileHeaderAdaptor / TTKProfileHeaderViewComponent family). The copy profile
+// information feature moved to the TTKProfileRootView hook near the top of this file.
 
 %hook AWELiveFeedEntranceView
 - (void)switchStateWithTapped:(BOOL)arg1 {
@@ -1168,9 +1446,9 @@ static BOOL isAuthenticationShowed = FALSE;
 
 }
 %new - (void)downloadMusic:(AWEAwemeBaseViewController *)rootVC {
-    NSString *as = rootVC.model.itemID;
-    NSURL *downloadableURL = [rootVC.model.video.playURL bestURLtoDownload];
-    self.fileextension = @"mp3";
+    // bug fix: download the actual audio stream (was downloading the video stream labeled .mp3)
+    NSURL *downloadableURL = [((AWEMusicModel *)rootVC.model.music).playURL bestURLtoDownload];
+    self.fileextension = [((AWEMusicModel *)rootVC.model.music).playURL bestURLtoDownloadFormat];
     if (downloadableURL) {
         BHDownload *dwManager = [[BHDownload alloc] init];
         [dwManager downloadFileWithURL:downloadableURL];
@@ -1186,7 +1464,7 @@ static BOOL isAuthenticationShowed = FALSE;
         UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
         pasteboard.string = [downloadableURL absoluteString];
     } else {
-        [%c(AWEUIAlertView) showAlertWithTitle:@"BHTikTok, Hi" description:@"Could Not Copy Music." image:nil actionButtonTitle:@"OK" cancelButtonTitle:nil actionBlock:nil cancelBlock:nil];
+        [%c(AWEUIAlertView) showAlertWithTitle:@"BHTikTok, Hi" description:@"Could not copy music link." image:nil actionButtonTitle:@"OK" cancelButtonTitle:nil actionBlock:nil cancelBlock:nil];
     }
 }
 %new - (void)copyVideo:(AWEAwemeBaseViewController *)rootVC {
@@ -1195,16 +1473,23 @@ static BOOL isAuthenticationShowed = FALSE;
         UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
         pasteboard.string = [downloadableURL absoluteString];
     } else {
-        [%c(AWEUIAlertView) showAlertWithTitle:@"BHTikTok, Hi" description:@"The video dosen't have music to download." image:nil actionButtonTitle:@"OK" cancelButtonTitle:nil actionBlock:nil cancelBlock:nil];
+        [%c(AWEUIAlertView) showAlertWithTitle:@"BHTikTok, Hi" description:@"Could not copy video link." image:nil actionButtonTitle:@"OK" cancelButtonTitle:nil actionBlock:nil cancelBlock:nil];
     }
 }
 %new - (void)copyDecription:(AWEAwemeBaseViewController *)rootVC {
-    NSString *video_description = rootVC.model.music_songName;
-    if (video_description) {
+    // bug fix: copy the actual video caption (AWEAwemeModel.desc via KVC), fall back to song name
+    NSString *video_description = nil;
+    @try {
+        video_description = [rootVC.model valueForKey:@"desc"];
+    } @catch (__unused NSException *exception) {}
+    if (video_description.length == 0) {
+        video_description = rootVC.model.music_songName;
+    }
+    if (video_description.length > 0) {
         UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
         pasteboard.string = video_description;
     } else {
-        [%c(AWEUIAlertView) showAlertWithTitle:@"BHTikTok, Hi" description:@"The video dosen't have music to download." image:nil actionButtonTitle:@"OK" cancelButtonTitle:nil actionBlock:nil cancelBlock:nil];
+        [%c(AWEUIAlertView) showAlertWithTitle:@"BHTikTok, Hi" description:@"Could not copy description." image:nil actionButtonTitle:@"OK" cancelButtonTitle:nil actionBlock:nil cancelBlock:nil];
     }
 }
 %new - (void) downloadButtonHandler:(UIButton *)sender {
@@ -1528,9 +1813,9 @@ static BOOL isAuthenticationShowed = FALSE;
     }
 }
 %new - (void)downloadMusic:(AWEAwemeBaseViewController *)rootVC {
-    NSString *as = rootVC.model.itemID;
-    NSURL *downloadableURL = [rootVC.model.video.playURL bestURLtoDownload];
-        self.fileextension = @"mp3";
+    // bug fix: download the actual audio stream (was downloading the video stream labeled .mp3)
+    NSURL *downloadableURL = [((AWEMusicModel *)rootVC.model.music).playURL bestURLtoDownload];
+    self.fileextension = [((AWEMusicModel *)rootVC.model.music).playURL bestURLtoDownloadFormat];
     if (downloadableURL) {
         BHDownload *dwManager = [[BHDownload alloc] init];
         [dwManager downloadFileWithURL:downloadableURL];
@@ -1546,7 +1831,7 @@ static BOOL isAuthenticationShowed = FALSE;
         UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
         pasteboard.string = [downloadableURL absoluteString];
     } else {
-        [%c(AWEUIAlertView) showAlertWithTitle:@"BHTikTok, Hi" description:@"The video dosen't have music to download." image:nil actionButtonTitle:@"OK" cancelButtonTitle:nil actionBlock:nil cancelBlock:nil];
+        [%c(AWEUIAlertView) showAlertWithTitle:@"BHTikTok, Hi" description:@"Could not copy music link." image:nil actionButtonTitle:@"OK" cancelButtonTitle:nil actionBlock:nil cancelBlock:nil];
     }
 }
 %new - (void)copyVideo:(AWEAwemeBaseViewController *)rootVC {
@@ -1555,16 +1840,23 @@ static BOOL isAuthenticationShowed = FALSE;
         UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
         pasteboard.string = [downloadableURL absoluteString];
     } else {
-        [%c(AWEUIAlertView) showAlertWithTitle:@"BHTikTok, Hi" description:@"The video dosen't have music to download." image:nil actionButtonTitle:@"OK" cancelButtonTitle:nil actionBlock:nil cancelBlock:nil];
+        [%c(AWEUIAlertView) showAlertWithTitle:@"BHTikTok, Hi" description:@"Could not copy video link." image:nil actionButtonTitle:@"OK" cancelButtonTitle:nil actionBlock:nil cancelBlock:nil];
     }
 }
 %new - (void)copyDecription:(AWEAwemeBaseViewController *)rootVC {
-    NSString *video_description = rootVC.model.music_songName;
-    if (video_description) {
+    // bug fix: copy the actual video caption (AWEAwemeModel.desc via KVC), fall back to song name
+    NSString *video_description = nil;
+    @try {
+        video_description = [rootVC.model valueForKey:@"desc"];
+    } @catch (__unused NSException *exception) {}
+    if (video_description.length == 0) {
+        video_description = rootVC.model.music_songName;
+    }
+    if (video_description.length > 0) {
         UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
         pasteboard.string = video_description;
     } else {
-        [%c(AWEUIAlertView) showAlertWithTitle:@"BHTikTok, Hi" description:@"The video dosen't have music to download." image:nil actionButtonTitle:@"OK" cancelButtonTitle:nil actionBlock:nil cancelBlock:nil];
+        [%c(AWEUIAlertView) showAlertWithTitle:@"BHTikTok, Hi" description:@"Could not copy description." image:nil actionButtonTitle:@"OK" cancelButtonTitle:nil actionBlock:nil cancelBlock:nil];
     }
 }
 %new - (void) downloadButtonHandler:(UIButton *)sender {

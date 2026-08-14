@@ -10,6 +10,7 @@
 #import "LiveActions.h"
 #import "PlaybackSpeed.h"
 #import "OfflineVideosLimit.h"
+#import "LabsViewController.h"
 
 @interface ViewController ()
 @property (nonatomic, strong) UITableView *staticTable;
@@ -47,7 +48,7 @@
 
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
-    return 10;
+    return 11;
 }
 
 - (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section {
@@ -73,6 +74,8 @@
             return @"Privacy";
         case 9:
             return @"Offline Videos";
+        case 10:
+            return @"Labs";
         default:
             break;
     }
@@ -101,6 +104,8 @@
             return 2; // privacy section
         case 9:
             return 1; // offline videos section
+        case 10:
+            return 1; // labs section
         default:
             return 0; // Fallback for unexpected section
     }
@@ -456,6 +461,21 @@
                 break;
         }
     }
+    else if (indexPath.section == 10) {
+        switch (indexPath.row) {
+            case 0: {
+                UITableViewCell *cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:nil];
+                cell.textLabel.text = @"A/B Experiment Explorer";
+                cell.textLabel.textColor = [UIColor systemBlueColor];
+                cell.detailTextLabel.text = @"View & override TikTok's internal A/B flags";
+                cell.imageView.image = [UIImage systemImageNamed:@"flask"];
+                cell.detailTextLabel.textColor = [UIColor systemGrayColor];
+                return cell;
+            }
+            default:
+                break;
+        }
+    }
     return [UITableViewCell new];
 }
 
@@ -504,6 +524,11 @@
     else if (indexPath.section == 9 && indexPath.row == 0){
         OfflineVideosLimit *offlineLimit = [[OfflineVideosLimit alloc] init];
         UINavigationController *navController = [[UINavigationController alloc] initWithRootViewController:offlineLimit];
+        [self presentViewController:navController animated:YES completion:nil];
+    }
+    else if (indexPath.section == 10 && indexPath.row == 0){
+        LabsViewController *labs = [[LabsViewController alloc] init];
+        UINavigationController *navController = [[UINavigationController alloc] initWithRootViewController:labs];
         [self presentViewController:navController animated:YES completion:nil];
     }
 }

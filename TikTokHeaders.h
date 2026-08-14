@@ -393,6 +393,24 @@
 + (BOOL)isAtMaxDownloadCount;
 @end
 
+// Libra / A/B experiment stack (signatures verified in MusicallyCore 46.5.0 ObjC metadata)
+@interface AWEABTestManager : NSObject
++ (instancetype)sharedManager;
++ (void)debugOverride_EnabledMock:(BOOL)enabled;
++ (void)debugOverride_SetMockValue:(id)value forKey:(id)key;
++ (void)debugOverride_RemoveMockValueForKey:(id)key;
++ (void)debugOverride_ClearAllMock;
+- (id)getStableValueWithKey:(id)key;
+- (id)getUidABTestValue:(id)key stable:(BOOL)stable defaultValue:(id)defaultValue;
+- (id)stableValues;
+- (id)currentActiveABTestData;
+- (id)readABTestData;
+@end
+
+@interface TTKClientABTestService : NSObject
+- (id)clientABValueFor:(id)key;
+@end
+
 static BOOL is_iPad() {
     if ([(NSString *)[UIDevice currentDevice].model hasPrefix:@"iPad"]) {
         return YES;

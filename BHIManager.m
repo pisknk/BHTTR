@@ -226,4 +226,7 @@
 + (NSNumber *)offlineVideosLimit {
     return [[NSUserDefaults standardUserDefaults] objectForKey:@"offline_videos_limit"];
 }
++ (NSDictionary *)abOverrides {
+    return [[NSUserDefaults standardUserDefaults] dictionaryForKey:@"ab_overrides"];
+}
 @end

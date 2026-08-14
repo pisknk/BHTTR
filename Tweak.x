@@ -25,6 +25,16 @@ static void showConfirmation(void (^okHandler)(void)) {
         [[NSUserDefaults standardUserDefaults] setBool:true forKey:@"extended_bio"];
         [[NSUserDefaults standardUserDefaults] setBool:true forKey:@"extendedComment"];
     }
+    // Labs: re-apply A/B overrides through TikTok's own debug-override mock layer
+    // (AWEABTestManager debugOverride_* API, verified present in MusicallyCore 46.5.0).
+    // The %hook backstops below cover readers that bypass the mock layer.
+    NSDictionary *abOverrides = [BHIManager abOverrides];
+    if (abOverrides.count > 0) {
+        [%c(AWEABTestManager) debugOverride_EnabledMock:YES];
+        for (NSString *abKey in abOverrides) {
+            [%c(AWEABTestManager) debugOverride_SetMockValue:abOverrides[abKey] forKey:abKey];
+        }
+    }
     [BHIManager cleanCache];
     return true;
 }
@@ -2221,6 +2231,37 @@ static BOOL isAuthenticationShowed = FALSE;
     NSNumber *custom = [BHIManager offlineVideosLimit];
     if (custom != nil && [custom integerValue] > 0) {
         return NO; // don't stop refilling at the stock cap
+    }
+    return %orig;
+}
+%end
+
+// Labs: A/B experiment overrides (Settings -> Labs -> A/B Experiment Explorer; key: ab_overrides).
+// These are the Libra/ClientAB read accessors verified in MusicallyCore 46.5.0 ObjC metadata.
+// The Labs editor preserves original value types, so returning the boxed override is type-safe.
+// NOTE: do NOT hook ABTestMonitor*/exposure paths (tracking) — overrides stay local-only.
+%hook AWEABTestManager
+- (id)getStableValueWithKey:(id)key {
+    id override = [BHIManager abOverrides][key];
+    if (override) {
+        return override;
+    }
+    return %orig;
+}
+- (id)getUidABTestValue:(id)key stable:(BOOL)stable defaultValue:(id)defaultValue {
+    id override = [BHIManager abOverrides][key];
+    if (override) {
+        return override;
+    }
+    return %orig;
+}
+%end
+
+%hook TTKClientABTestService
+- (id)clientABValueFor:(id)key {
+    id override = [BHIManager abOverrides][key];
+    if (override) {
+        return override;
     }
     return %orig;
 }

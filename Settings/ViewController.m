@@ -87,7 +87,7 @@
         case 3: // Other section
             return 11;
         case 4:
-            return 3; // region section
+            return 4; // region section
         case 5:
             return 2; // live action section
         case 6:
@@ -341,6 +341,15 @@
                 return [self createSwitchCellWithTitle:@"Show Region Change Option"
                                                 Detail:@"Surface TikTok's official account region change entry in settings"
                                                    Key:@"show_region_change_option"];
+            case 3: {
+                UITableViewCell *cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:nil];
+                cell.textLabel.text = @"Change Region (Official)";
+                cell.textLabel.textColor = [UIColor systemBlueColor];
+                cell.detailTextLabel.text = @"Open TikTok official region change page directly";
+                cell.imageView.image = [UIImage systemImageNamed:@"arrow.up.right.square"];
+                cell.detailTextLabel.textColor = [UIColor systemGrayColor];
+                return cell;
+            }
             default:
                 break;
         }
@@ -433,7 +442,20 @@
         CountryTable *countryTable = [[CountryTable alloc] init];
         UINavigationController *navController = [[UINavigationController alloc] initWithRootViewController:countryTable];
         [self presentViewController:navController animated:YES completion:nil];
-        
+
+    }
+    else if (indexPath.section == 4 && indexPath.row == 3){
+        // Open TikTok's official change-region page (found in MusicallyCore 46.5.0:
+        // https://www.tiktok.com/tpp/inapp/pns_product_poseidon/change-region-selector.html)
+        // inside TikTok's own webview via the aweme://webview route, so the page keeps its
+        // com.pns.changeregion JS bridge. Bypasses the server-driven entrance gating entirely.
+        NSString *target = @"https://www.tiktok.com/tpp/inapp/pns_product_poseidon/change-region-selector.html";
+        NSMutableCharacterSet *allowed = [[NSCharacterSet alphanumericCharacterSet] mutableCopy];
+        [allowed addCharactersInString:@"-._~"];
+        NSString *encoded = [target stringByAddingPercentEncodingWithAllowedCharacters:allowed];
+        NSString *route = [NSString stringWithFormat:@"aweme://webview/?hide_nav_bar=1&use_spark=1&show_loading=1&url=%@", encoded];
+        NSURL *url = [NSURL URLWithString:route];
+        [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
     }
     else if (indexPath.section == 5 && indexPath.row == 1){
         LiveActions *liveActions = [[LiveActions alloc] init];

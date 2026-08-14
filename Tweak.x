@@ -733,126 +733,39 @@ static BOOL isAuthenticationShowed = FALSE;
 %end
 
 // 46.5.0: surface TikTok's hidden official account-region-change entry (PNSChangeRegion SDK).
-// isChangeRegionEnabled gates the settings entry; hooked on every plausible owner class —
-// a class not implementing the selector is a harmless no-op. The server still validates the
-// actual migration (IP/eligibility/cooldown); this toggle only reveals the UI.
-%hook TTKChangeRegionInitConfig
+// Hook targets verified by walking the ObjC metadata of MusicallyCore (46.5.0): the gates are
+// ObjC properties on these exact classes. (Earlier attempts hooked TTK* manager names, which are
+// pure Swift classes invisible to objc_getClass — those hooks were silent no-ops.)
+// The server still validates the actual migration (IP/eligibility/cooldown); this only reveals the UI.
+%hook PNSChangeRegionSettingsModel
 - (BOOL)isChangeRegionEnabled {
     if ([BHIManager showRegionChangeOption]) {
         return YES;
     }
     return %orig;
 }
-- (BOOL)hasEntranceShowInfo {
-    if ([BHIManager showRegionChangeOption]) {
-        return YES;
-    }
-    return %orig;
-}
 %end
 
-%hook TTKChangeRegionInitConfigV2
+%hook PNSChangeRegionSettingsModelV2
 - (BOOL)isChangeRegionEnabled {
     if ([BHIManager showRegionChangeOption]) {
         return YES;
     }
     return %orig;
 }
-- (BOOL)hasEntranceShowInfo {
-    if ([BHIManager showRegionChangeOption]) {
-        return YES;
-    }
-    return %orig;
-}
 %end
 
-%hook TTKSettingsChangeRegionManager
-- (BOOL)isChangeRegionEnabled {
-    if ([BHIManager showRegionChangeOption]) {
-        return YES;
-    }
-    return %orig;
-}
+%hook PNSChangeRegionCountryModelV2
 - (BOOL)hasEntranceShowInfo {
     if ([BHIManager showRegionChangeOption]) {
         return YES;
     }
     return %orig;
 }
-%end
-
-%hook TTKSignupChangeRegionManager
-- (BOOL)isChangeRegionEnabled {
+- (NSInteger)entranceShowType {
     if ([BHIManager showRegionChangeOption]) {
-        return YES;
-    }
-    return %orig;
-}
-- (BOOL)hasEntranceShowInfo {
-    if ([BHIManager showRegionChangeOption]) {
-        return YES;
-    }
-    return %orig;
-}
-%end
-
-%hook PNSChangeRegionManager
-- (BOOL)isChangeRegionEnabled {
-    if ([BHIManager showRegionChangeOption]) {
-        return YES;
-    }
-    return %orig;
-}
-- (BOOL)hasEntranceShowInfo {
-    if ([BHIManager showRegionChangeOption]) {
-        return YES;
-    }
-    return %orig;
-}
-%end
-
-%hook PNSChangeRegionManagerV2
-- (BOOL)isChangeRegionEnabled {
-    if ([BHIManager showRegionChangeOption]) {
-        return YES;
-    }
-    return %orig;
-}
-- (BOOL)hasEntranceShowInfo {
-    if ([BHIManager showRegionChangeOption]) {
-        return YES;
-    }
-    return %orig;
-}
-%end
-
-// Same toggle, SECOND gate: the settings entry is only built when the SDK fetched entrance
-// info from the server (hasEntranceShowInfo/entranceShowType over com.pns.changeregion.v2).
-// PH accounts get hasEntranceShowInfo=NO → entry hidden even with isChangeRegionEnabled=YES
-// (confirmed by device test). These data-manager classes are the most likely holders of the
-// fetched flag; classes that don't implement the selector are harmless no-ops.
-%hook PNSChangeRegionDataManager
-- (BOOL)hasEntranceShowInfo {
-    if ([BHIManager showRegionChangeOption]) {
-        return YES;
-    }
-    return %orig;
-}
-%end
-
-%hook PNSSettingsChangeRegionDataManager
-- (BOOL)hasEntranceShowInfo {
-    if ([BHIManager showRegionChangeOption]) {
-        return YES;
-    }
-    return %orig;
-}
-%end
-
-%hook PNSSettingsChangeRegionDataManagerV2
-- (BOOL)hasEntranceShowInfo {
-    if ([BHIManager showRegionChangeOption]) {
-        return YES;
+        NSInteger orig = %orig;
+        return orig == 0 ? 1 : orig;
     }
     return %orig;
 }

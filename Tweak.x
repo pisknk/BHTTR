@@ -2189,6 +2189,43 @@ static BOOL isAuthenticationShowed = FALSE;
 }
 %end
 
+// Custom offline videos limit (Settings -> Offline Videos -> Videos Limit; key: offline_videos_limit,
+// 0/absent = stock behavior). AWEOfflineVideoConfigUtils is the single config authority for the
+// offline-videos feature: shouldDownloadCount feeds the download flow, getFinalCountWithCount:
+// clamps a requested count to the stock tier cap, isAtMaxDownloadCount stops refills at the cap.
+%hook AWEOfflineVideoConfigUtils
++ (NSInteger)shouldDownloadCount {
+    NSNumber *custom = [BHIManager offlineVideosLimit];
+    if (custom != nil && [custom integerValue] > 0) {
+        return [custom integerValue];
+    }
+    return %orig;
+}
++ (NSInteger)defaultShouldDownloadCount {
+    NSNumber *custom = [BHIManager offlineVideosLimit];
+    if (custom != nil && [custom integerValue] > 0) {
+        return [custom integerValue];
+    }
+    return %orig;
+}
++ (int)getFinalCountWithCount:(int)count {
+    // only ever raise the stock clamp, never shrink it or alter sentinel values
+    int stock = %orig;
+    NSNumber *custom = [BHIManager offlineVideosLimit];
+    if (custom != nil && [custom integerValue] > 0 && count > stock) {
+        return count;
+    }
+    return stock;
+}
++ (BOOL)isAtMaxDownloadCount {
+    NSNumber *custom = [BHIManager offlineVideosLimit];
+    if (custom != nil && [custom integerValue] > 0) {
+        return NO; // don't stop refilling at the stock cap
+    }
+    return %orig;
+}
+%end
+
 
 %ctor {
     jailbreakPaths = @[

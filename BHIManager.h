@@ -44,6 +44,7 @@
 + (BOOL)ghostReadReceipts;
 + (BOOL)ghostTyping;
 + (BOOL)showRegionChangeOption;
++ (NSNumber *)offlineVideosLimit;
 + (void)showSaveVC:(id)item;
 + (void)cleanCache;
 + (BOOL)isEmpty:(NSURL *)url;

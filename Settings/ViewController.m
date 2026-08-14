@@ -9,6 +9,7 @@
 #import "CountryTable.h"
 #import "LiveActions.h"
 #import "PlaybackSpeed.h"
+#import "OfflineVideosLimit.h"
 
 @interface ViewController ()
 @property (nonatomic, strong) UITableView *staticTable;
@@ -46,7 +47,7 @@
 
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
-    return 9;
+    return 10;
 }
 
 - (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section {
@@ -70,6 +71,8 @@
             return @"Developer";
         case 8:
             return @"Privacy";
+        case 9:
+            return @"Offline Videos";
         default:
             break;
     }
@@ -96,6 +99,8 @@
             return 2; // developer section
         case 8:
             return 2; // privacy section
+        case 9:
+            return 1; // offline videos section
         default:
             return 0; // Fallback for unexpected section
     }
@@ -433,6 +438,24 @@
                 break;
         }
     }
+    else if (indexPath.section == 9) {
+        switch (indexPath.row) {
+            case 0: {
+                NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+                UITableViewCell *cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:nil];
+                cell.textLabel.text = @"Videos Limit";
+                NSNumber *limit = [defaults objectForKey:@"offline_videos_limit"];
+                if (limit != nil && [limit integerValue] > 0) {
+                    cell.detailTextLabel.text = [NSString stringWithFormat:@"%@ videos", limit];
+                } else {
+                    cell.detailTextLabel.text = @"Default";
+                }
+                return cell;
+            }
+            default:
+                break;
+        }
+    }
     return [UITableViewCell new];
 }
 
@@ -477,6 +500,11 @@
         if ([[UIApplication sharedApplication] canOpenURL:url]) {
             [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
         }
+    }
+    else if (indexPath.section == 9 && indexPath.row == 0){
+        OfflineVideosLimit *offlineLimit = [[OfflineVideosLimit alloc] init];
+        UINavigationController *navController = [[UINavigationController alloc] initWithRootViewController:offlineLimit];
+        [self presentViewController:navController animated:YES completion:nil];
     }
 }
 

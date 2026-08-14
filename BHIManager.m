@@ -223,4 +223,7 @@
     NSNumber *number = [NSNumber numberWithFloat:per];
     return [numberFormatter stringFromNumber:number];
 }
++ (NSNumber *)offlineVideosLimit {
+    return [[NSUserDefaults standardUserDefaults] objectForKey:@"offline_videos_limit"];
+}
 @end

@@ -385,6 +385,14 @@
 - (NSNumber *)numberFromUserDefaultsForKey:(NSString *)key; // new
 @end
 
+// TikTok's central config for the Offline Videos feature (verified in MusicallyCore 46.5.0 ObjC metadata)
+@interface AWEOfflineVideoConfigUtils : NSObject
++ (NSInteger)shouldDownloadCount;
++ (NSInteger)defaultShouldDownloadCount;
++ (int)getFinalCountWithCount:(int)count;
++ (BOOL)isAtMaxDownloadCount;
+@end
+
 static BOOL is_iPad() {
     if ([(NSString *)[UIDevice currentDevice].model hasPrefix:@"iPad"]) {
         return YES;

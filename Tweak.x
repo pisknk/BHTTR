@@ -1102,7 +1102,9 @@ static BOOL isAuthenticationShowed = FALSE;
 %hook UIButton // follow confirmation broken 
 - (void)_onTouchUpInside {
     if ([BHIManager followConfirmation] && [self.currentTitle isEqualToString:@"Follow"]) {
-        showConfirmation(^(void) { %orig; });
+        showConfirmation(^(void) {
+            %orig;
+        });
     } else {
         %orig;
     }
@@ -1111,7 +1113,9 @@ static BOOL isAuthenticationShowed = FALSE;
 %hook AWEPlayInteractionUserAvatarElement
 - (void)onFollowViewClicked:(id)sender {
     if ([BHIManager followConfirmation]) {
-        showConfirmation(^(void) { %orig; });
+        showConfirmation(^(void) {
+            %orig;
+        });
     } else {
         return %orig;
     }
@@ -1184,7 +1188,9 @@ static BOOL isAuthenticationShowed = FALSE;
 %hook AWEFeedVideoButton // like feed confirmation
 - (void)_onTouchUpInside {
     if ([BHIManager likeConfirmation] && [self.imageNameString isEqualToString:@"ic_like_fill_1_new"]) {
-        showConfirmation(^(void) { %orig; });
+        showConfirmation(^(void) {
+            %orig;
+        });
     } else {
         %orig;
     }
@@ -1193,14 +1199,18 @@ static BOOL isAuthenticationShowed = FALSE;
 %hook AWECommentPanelCell // like/dislike comment confirmation
 - (void)onLikeAction:(id)arg1 {
     if ([BHIManager likeCommentConfirmation]) {
-        showConfirmation(^(void) { %orig; });
+        showConfirmation(^(void) {
+            %orig;
+        });
     } else {
         return %orig;
     }
 }
 - (void)onDislikeAction:(id)arg1 {
     if ([BHIManager dislikeCommentConfirmation]) {
-        showConfirmation(^(void) { %orig; });
+        showConfirmation(^(void) {
+            %orig;
+        });
     } else {
         return %orig;
     }

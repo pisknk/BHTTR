@@ -177,6 +177,7 @@
 @property(nonatomic, weak, readwrite) id context;
 @property(nonatomic, copy, readwrite) NSString *sectionHeaderTitle;
 @property(nonatomic, copy, readwrite) NSString *sectionIdentifier;
+@property (nonatomic, strong) TTKSettingsBaseCellPlugin *bhtiktokCell; // tweak: cached settings row cell
 @end
 
 @interface AWEBaseListViewModel: NSObject
